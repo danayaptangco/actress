@@ -119,9 +119,13 @@ def transittimes(lc):
     return np.linspace(xlo, xhi, N)
     
     
-def transitpos(xsize=800, pad=100, angle=0.0, b=0.0, N=101, otherb=False,
-               plot=False, figname=None):
+def transitpos(xsize=800, a=1.25, angle=0.0, b=0.0, N=101, otherb=False,
+               plot=False, figname=None, T=2.0, phi=0.5):
     
+    #pad = int(0.5*((a*xsize)-xsize))
+    phi_min = 0.5*(0.5-phi)
+    pad = int(((a*xsize/2)*np.cos(2*np.pi*phi_min)) - xsize/2)
+
     size = xsize + 2*pad
     
     vec = np.linspace(-size, size, 11)
@@ -170,8 +174,22 @@ def transitpos(xsize=800, pad=100, angle=0.0, b=0.0, N=101, otherb=False,
         m, c, r, p, err = stats.linregress(X, Y)
         
         if angle==0.0:
-            xx = np.linspace(0, size, N)
-            yy = linear(xx, m, c)
+            #T = 2*size
+            #a = size/2
+            tmin = 0.5*T*(0.5 - phi)
+            tmax = 0.5*T*(0.5 + phi)
+            t = np.linspace(tmin, tmax, N)
+            #v = (2*np.pi*a)/T
+            #phi = np.linspace(0,0.5,N)
+            if round(a % 1,2) == 0.01:
+                val = 1.5
+            else:
+                val = 0.5
+            xx_s = ((a*xsize/2)*(1-np.cos(2*np.pi*t/T))) - val #- 1.5 # - 0.5
+            pad_orig = int(0.5*((a*xsize)-xsize))
+            xx = xx_s - (pad_orig - pad)
+            #yy = linear(xx, m, c)
+            yy = (b*(xsize/2)*np.sin(2*np.pi*t/T)) + size/2 - 0.5 #1.5 #0.5
         elif np.abs(angle)==90.0:
             yy = np.linspace(0, size, N)
             xx = linearinv(yy, m, c)
