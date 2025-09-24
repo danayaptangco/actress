@@ -55,3 +55,20 @@ except:
         from actress.simulator import *
     except:
         from simulator import *
+
+try:
+    from .contrasts import *
+except:
+    try:
+        from actress.contrasts import *
+    except:
+        from contrasts import *
+
+try:
+    from .run_actress_notebook import *
+except:
+    try:
+        from actress.run_actress_notebook import *
+    except:
+        from run_actress_notebook import *
+        
