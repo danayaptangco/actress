@@ -1,0 +1,9 @@
+numpy
+scipy
+healpy
+pandas
+spectres
+astropy
+photutils
+joblib
+uncertainties
