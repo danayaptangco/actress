@@ -56,15 +56,9 @@ try:
     from .hmap import *
 except:
     try:
-<<<<<<< HEAD
         from actress.actress_trial.hmap import *
     except:
         from actress.actress_trial.hmap import *
-=======
-        from actress.actress.hmap import *
-    except:
-        from actress.actress.hmap import *
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
 
 
 
@@ -127,11 +121,7 @@ class Simulator():
 
         if (resolution < 1) or (resolution > 30):
             raise Exception("resolution must be an integer between 1 and 30 ({} provided)".format(resolution))
-<<<<<<< HEAD
         self.__res = 2**int(4) #Dana edit resolution
-=======
-        self.__res = 2**int(resolution)
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
 
 
         self.__ld = ld
@@ -369,11 +359,7 @@ class Simulator():
         arg = np.sqrt(xx**2 + yy**2)
 
 
-<<<<<<< HEAD
         u2 = 1 - arg**2 #changed the 2 from a 1 (first one)
-=======
-        u2 = 1 - arg**2
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
         u2 = (np.abs(u2)+u2)/2 #changes -ve values to zero, no RuntimeWarning
         u = np.sqrt(u2)
 
@@ -498,11 +484,7 @@ class Simulator():
             inc = [inc]
 
         m = self.makemap(mode=mode)
-<<<<<<< HEAD
         v2p = functools.partial(hp.vec2pix, hp.npix2nside(len(m))) #check comparison with James/Luke
-=======
-        v2p = functools.partial(hp.vec2pix, hp.npix2nside(len(m)))
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
 
 
         x = np.linspace(0, xmax, N+1)[:-1]
@@ -572,21 +554,13 @@ class Simulator():
         #    pad = int(self.__xs/8) #default pad is 1/8 of the disc diameter
 
         #pad = int(0.5*((a*self.__xs)-self.__xs))
-<<<<<<< HEAD
         phi_min = 0.5*(.5-phi)
-=======
-        phi_min = 0.5*(0.5-phi)
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
         pad = int(((a*self.__xs/2)*np.cos(2*np.pi*phi_min)) - self.__xs/2)
 
         Rp = radratio * (self.__xs/2)
         # ln = self.__xs + 2*pad
 
-<<<<<<< HEAD
         xp, yp = transitpos(self.__xs, a, -angle, -b, N, T, phi=phi)
-=======
-        xp, yp = transitpos(self.__xs, a, -angle, -b, N, T)
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
         #-ve angle and b because stellar disc has inverted y-axis
         N = len(xp)
 
@@ -616,11 +590,7 @@ class Simulator():
             t = np.linspace(0, tmax - tmin, N)
             err = [0.001] * len(xp)
             v = np.column_stack((t,lc,err,xp))
-<<<<<<< HEAD
             np.savetxt('save_transit.txt', v)
-=======
-            np.savetxt(save_transit, v)
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
 
         if retP:
             return lc, P
@@ -650,12 +620,8 @@ class Simulator():
         gs = gridspec.GridSpec(1, 2, width_ratios=[5, 6])
 
         fig, ax1, ax2 = plt.figure(figsize=(10, 5)), plt.subplot(gs[0]), plt.subplot(gs[1])
-<<<<<<< HEAD
         wavelength_text = f"{wavelength * 1e10:.3f}"  # meters → Ångstroms
         fig.suptitle(f"Wavelength {wavelength_text}", fontsize=16)
-=======
-
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
         #x = self.GetX(N=N, 'degrees')
         x1 = np.linspace(0, 1, N+1)[:-1]
 
@@ -691,36 +657,14 @@ class Simulator():
                     dm = d.mean()
                 d /= dm
             dat.append(d[::-1])
-<<<<<<< HEAD
 
         disc_data = dat[1]  # shape: (N, H, W)
         vmin = np.nanmin(disc_data)
         vmax = np.nanmax(disc_data)
 
-        # ims = [] ####COMMENTED OUT BY DANA TO REMOVE ANIMATION
-        # for i in range(N):
-        #     im = ax1.imshow(dat[1][i], animated=True, cmap=cmap, vmin=vmin, vmax=vmax)
-        #     f = np.nanmean(dat[1][i])
-        #     im2, = ax2.plot(x1, dat[0], color='b', lw=3, zorder=1)
-        #     im2 = ax2.scatter(x1[i], f, color='r', s=100, alpha=1, zorder=2)
-        #     ims.append([im, im2])
-
-        # fig.tight_layout()
-        # anim = ani.ArtistAnimation(fig, ims, interval=interval)
-
-        # if save!=None:
-        #     anim.save(save)
-
-        if outputLC:
-            os.makedirs('./rot_lightcurve_csvs', exist_ok=True)
-            wavelength_text = f"{wavelength * 1e10:.3f}"  # meters → Ångstroms
-            np.savetxt(f"./rot_lightcurve_csvs/lightcurve_{wavelength_text}.csv", dat[0], delimiter=",", header="flux", comments="")
-=======
-
-
-        ims = []
+        ims = [] ####COMMENTED OUT BY DANA TO REMOVE ANIMATION
         for i in range(N):
-            im = ax1.imshow(dat[1][i], animated=True, cmap=cmap)
+            im = ax1.imshow(dat[1][i], animated=True, cmap=cmap, vmin=vmin, vmax=vmax)
             f = np.nanmean(dat[1][i])
             im2, = ax2.plot(x1, dat[0], color='b', lw=3, zorder=1)
             im2 = ax2.scatter(x1[i], f, color='r', s=100, alpha=1, zorder=2)
@@ -732,9 +676,11 @@ class Simulator():
         if save!=None:
             anim.save(save)
 
-        if outputLC==True:
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
-            return dat[0]
+        # if outputLC:
+        #     os.makedirs('./rot_lightcurve_csvs', exist_ok=True)
+        #     wavelength_text = f"{wavelength * 1e10:.3f}"  # meters → Ångstroms
+        #     np.savetxt(f"./rot_lightcurve_csvs/lightcurve_{wavelength_text}.csv", dat[0], delimiter=",", header="flux", comments="")
+        #     return dat[0]
 
         else:
             return anim
@@ -746,11 +692,7 @@ class Simulator():
         """
         Animate a planetary transit and the corresponding lightcurve
         """
-<<<<<<< HEAD
         phi_min = 0.5*(0.5-phi) # maybe adjust second 0.5?
-=======
-        phi_min = 0.5*(0.5-phi)
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
         pad = int(((a*self.__xs/2)*np.cos(2*np.pi*phi_min)) - self.__xs/2)
 
 

@@ -1,30 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-<<<<<<< HEAD
 from scipy.integrate import simps
 from scipy.optimize import curve_fit
 from scipy.optimize import minimize
 
-=======
-#from scipy.integrate import simps
-from scipy.optimize import curve_fit
-from scipy.optimize import minimize
-
-def simps(y, x=None):
-    """
-    Perform numerical integration using Simpson's rule.
-    y : array-like, values to integrate
-    x : array-like or None, spacing
-    """
-    if x is None:
-        x = np.arange(len(y))
-    n = len(y)
-    if n % 2 == 0:
-        raise ValueError("Simpson's rule requires an odd number of samples.")
-    h = (x[-1] - x[0]) / (n - 1)
-    return (h / 3) * (y[0] + y[-1] + 4 * np.sum(y[1:-1:2]) + 2 * np.sum(y[2:-2:2]))
-
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
 def resort(t,f):
     t = np.array(t)
     f = np.array(f)
@@ -201,7 +180,6 @@ def contrast(data, wav_lower, wav_higher, N, ld_law, save=None, graphs=False):
                 ax[1].plot(costheta,res,'x')
                 ax[1].set_ylabel('residual (Photons/s/$m^{2}$/ster)')
                 ax[1].set_xlabel('$\\mu$')
-<<<<<<< HEAD
                                 
                 csv_path = './limb_darkening_laws/'+str(ld_law)+'_profile'+str(save[:4])+str(wavelength[i])+'nm'+'.csv' ##DANA EDIT
                 #os.makedirs('./limb_darkening_laws', exist_ok=True)
@@ -211,9 +189,6 @@ def contrast(data, wav_lower, wav_higher, N, ld_law, save=None, graphs=False):
 
                 
                 plt.savefig('./limb_darkening_laws/'+str(ld_law)+'_profile'+str(save[:4])+str(wavelength[i])+'nm'+'.png')
-=======
-                plt.savefig('profile'+str(wavelength[i])+'nm'+'.png')
->>>>>>> 3412da2fcb5d7e567cf9d4497f4428fc43b5ba40
                 plt.close()
 
     

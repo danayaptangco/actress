@@ -1,0 +1,5 @@
+# Ignore CSV and TXT files in outputs/
+outputs/*.csv
+outputs/*.txt
+outputs/**/*.csv
+outputs/**/*.txt

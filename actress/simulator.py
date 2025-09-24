@@ -30,8 +30,6 @@ import functools
 import time
 from photutils.aperture import CircularAperture as CAp
 from photutils.aperture import aperture_photometry as APh
-from photutils.aperture import CircularAperture as CAp
-from photutils.aperture import aperture_photometry as APh
 import joblib as jl
 import copy
 
@@ -44,7 +42,6 @@ except:
     except:
         from handyfuncs import *
 
-
 try:
     from .feature import *
 except:
@@ -52,9 +49,6 @@ except:
         from actress_trial.feature import *
     except:
         from feature import *
-
-
-
 
 
 
@@ -74,7 +68,6 @@ except:
 
 class Simulator():
 
-
     def __init__(self, faculae=[], spots=[], resolution=10, xsize=800,
                  fac_strips=[], spot_strips = [],
                  ld = {'phot':[2.33700574020726e21	, 1.512080132947490,-1.2083767839286600, 0.3987324436660390],
@@ -83,12 +76,6 @@ class Simulator():
                        'func':nonlin3}):
         """
         actress: the active rotating star simulator
-
-
-              __  ___  __   ___  __   __
-         /\  /  `  |  |__) |__  /__` /__`
-        /~~\ \__,  |  |  \ |___ .__/ .__/
-
 
 
               __  ___  __   ___  __   __
@@ -111,7 +98,6 @@ class Simulator():
         ld : DICT, optional
            Limb-dependent intensity coefficients. The default is for a G2 star with 100G facular regions and spots with T=5150K.
 
-
         Raises
         ------
         Exception
@@ -123,18 +109,13 @@ class Simulator():
 
         """
 
-
         self.__faculae = faculae
         self.__spots = spots
-
 
         self.__fstrips = fac_strips
         self.__sstrips = spot_strips
 
-
         self.__xs = xsize
-
-
 
 
 
@@ -145,51 +126,36 @@ class Simulator():
 
         self.__ld = ld
 
-
         self.__photmask = self.intensitymasks('phot')
         self.__spotmask = self.intensitymasks('spot')
         self.__facmask = self.intensitymasks('fac')
-
 
         self.__dphot = 1 #dummy variables
         self.__dspot = 2
         self.__dfac  = 3
 
 
-
-
     def setxsize(self, newxs):
 
-
         self.__xs = newxs
-
 
         self.__photmask = self.intensitymasks('phot')
         self.__spotmask = self.intensitymasks('spot')
         self.__facmask = self.intensitymasks('fac')
 
-
     def getxsize(self):
-
 
         return self.__xs
 
-
     def setresolution(self, newres):
-
 
         if (newres < 1) or (newres > 30):
             raise Exception("resolution must be an integer between 1 and 30 ({} provided)".format(newres))
         self.__res = 2**int(newres)
 
-
     def getresolution(self):
 
-
         return int(np.log2(self.__res))
-
-
-
 
 
 
@@ -199,14 +165,11 @@ class Simulator():
 
         """
 
-
         if typename(r) == 'Facula':
             self.__faculae.append(r)
 
-
         elif typename(r) == 'Spot':
             self.spots.append(r)
-
 
         else:
             feature = feature.lower()
@@ -220,7 +183,6 @@ class Simulator():
                 if lon is None or lat is None:
                     raise Exception("If a Spot, Facula or dict object is not entered, lon and lat must be defined")
 
-
             if feature=='fac':
                 feat = Facula(r, lon, lat)
                 self.__faculae.append(feat)
@@ -231,10 +193,7 @@ class Simulator():
                 raise Exception("feature must be 'fac' or 'spot'")
 
 
-
-
     def addstrip(self, lower, upper, feature='fac'):
-
 
         feature = feature.lower()
         if feature=='fac':
@@ -244,12 +203,9 @@ class Simulator():
             strip = Spot_Strip(lower, upper)
             self.__sstrips.append(strip)
 
-
     def getstrips(self, feature='fac'):
 
-
         feature = feature.lower()
-
 
         if feature=='fac':
             return self.__fstrips
@@ -258,17 +214,12 @@ class Simulator():
         else:
             raise Exception("feature must be 'fac' or 'spot'")
 
-
     def setfeaturelist(self, newfeaturelist, feature='fac'):
-
 
         feature = feature.lower()
 
-
         if isinstance(newfeaturelist, list)==False:
             raise Exception("newfeaturelist must be a list")
-
-
 
 
         if feature=='fac':
@@ -285,13 +236,9 @@ class Simulator():
             raise Exception("feature must be 'fac' or 'spot'")
 
 
-
-
     def getfeaturelist(self, feature='fac'):
 
-
         feature = feature.lower()
-
 
         if feature=='fac':
             return self.__faculae
@@ -301,22 +248,16 @@ class Simulator():
             raise Exception("feature must be 'fac' or 'spot'")
 
 
-
-
     def removefeatureidx(self, idx, feature='fac'):
 
-
         feature = feature.lower()
-
 
         if feature=='fac':
             del self.__faculae[idx]
         elif feature=='spot':
             del self.__spots[idx]
 
-
     def setld(self, ld):
-
 
         if isinstance(ld, dict):
             self.__ld = ld
@@ -326,7 +267,6 @@ class Simulator():
         self.__photmask = self.intensitymasks('phot')
         self.__spotmask = self.intensitymasks('spot')
         self.__facmask = self.intensitymasks('fac')
-
 
 
 
@@ -340,9 +280,7 @@ class Simulator():
             ld = actress_ld(spectype, mag, teff, tspot, filter_conv, mode, rebin_wl, path, wl_min, filtpath)
             self.setld(ld)
 
-
     def getld(self, feature='all'):
-
 
         if feature=='all':
             return self.__ld
@@ -352,18 +290,13 @@ class Simulator():
             return self.__ld[feature]
 
 
-
-
     def getfill(self, feature='fac', mode='both'):
         """
         Returns total surface coverage as a fraction for chosen feature
         """
 
-
         if feature not in ['photosphere', 'spot', 'fac', 'spot+fac']:
             raise Exception("feature must be 'photosphere', 'spot', 'fac' or 'spot+fac'")
-
-
 
 
         DICT = {'photosphere':1, 'spot':2, 'fac':3}
@@ -381,42 +314,32 @@ class Simulator():
             if len(self.getfeaturelist(feature))==0 and len(self.getstrips(feature))==0:
                 return 0.0
 
-
         key = DICT[feature]
-
 
         hmap = self.makemap(mode=mode)
 
         ff = len(hmap[hmap==key])/len(hmap)
 
-
         return ff
-
 
     def getdiscfill(self, feature='fac', mode='both', rot=0.0, inc=90):
         """
         Returns disc filling factor for chosen feature
         """
 
-
         if feature not in ['photosphere', 'spot', 'fac', 'spot+fac']:
             raise Exception("feature must be 'photosphere', 'spot', 'fac' or 'spot+fac'")
 
-
         MAT = self.stellarmodel(rot=rot, inc=inc, mode=mode, ldkey=True)
 
-
         DICT = {'photosphere':1, 'spot':2, 'fac':3}
-
 
         if feature=='spot+fac':
             s = self.getdiscfill('spot', mode=mode, rot=rot, inc=inc)
             f = self.getdiscfill('fac', mode=mode, rot=rot, inc=inc)
             return s+f
 
-
         k = DICT[feature]
-
 
         num = len(MAT[MAT==k])
         den = len(MAT[MAT!=0])
@@ -425,12 +348,10 @@ class Simulator():
 
     def intensitymasks(self, feature='phot'):
 
-
         feature = str(feature.lower())
         fts = ['phot', 'spot', 'fac']
         if feature not in fts:
             raise Exception("feature must be one of the following: {}".format(fts))
-
 
         x = np.linspace(-1, 1, self.__xs)
         y = np.linspace(-1, 1, self.__xs)
@@ -442,16 +363,12 @@ class Simulator():
         u2 = (np.abs(u2)+u2)/2 #changes -ve values to zero, no RuntimeWarning
         u = np.sqrt(u2)
 
-
         C = self.__ld[feature]
 
         LDMask = self.__ld['func'](u, *C)
 
 
-
         return LDMask
-
-
 
 
     def makemap(self, mode='both'):
@@ -459,28 +376,20 @@ class Simulator():
         Calculate Numerical Stellar Model
 
         rot  -- Rotation values theta /deg and phi /deg (inclination angle and
-
-        rot  -- Rotation values theta /deg and phi /deg (inclination angle and
                 radial coordinate)                              (tuple of scalars)
-
 
         """
         if isinstance(mode, str) == False:
             raise Exception("mode must be a string")
 
-
         mode = mode.lower()
-
 
         if mode not in ['both', 'spotonly', 'faconly', 'quiet']:
             raise Exception("mode must be one of the following: 'both', 'spotonly', 'faconly', 'quiet'")
 
-
         RES = hp.nside2npix(self.__res)
 
-
         m = np.linspace(self.__dphot, self.__dphot, RES)
-
 
         if mode=='both' or mode=='faconly':
             for i in self.__faculae:
@@ -494,7 +403,6 @@ class Simulator():
                     raise Exception("All elements of 'fac_strips' must be an instance of 'Fac_Strip' (element type: {})".format(type(j)))
                 facust = hp.query_strip(self.__res, (j.lower()+90)*(np.pi/180), (j.upper()+90)*(np.pi/180))
                 m[facust] = self.__dfac
-
 
         if mode=='both' or mode=='spotonly':
             for i in self.__spots:
@@ -510,39 +418,28 @@ class Simulator():
                 m[spotst] = self.__dspot
 
 
-
-
         return m
-
 
     def stellarmodel(self, rot=0, inc=90, mode='both', norm=False, pad=0,
                      plot=False, cmap='plasma', cbar=True, ldkey=False):
-
 
         rot = -rot
         inc = inc-90
         m = self.makemap(mode=mode)
 
-
         v2p = functools.partial(hp.vec2pix, hp.npix2nside(len(m)))
 
         star = hp.projector.OrthographicProj(rot=[rot, inc], half_sky=True, xsize=self.__xs).projmap(m, v2p)
 
-
         star[star == -np.inf] = 0
-
 
         if ldkey==True:
             return star
 
 
-
-
         idx_star = star == self.__dphot
         idx_spot = star == self.__dspot
         idx_facu = star== self.__dfac
-
-
 
 
 
@@ -557,13 +454,10 @@ class Simulator():
         star[idx_spot] = star[idx_spot]*LSP/self.__dspot
         star[idx_facu] = star[idx_facu]*LFA/self.__dfac
 
-
         if norm==True:
             star /= star.max()
 
-
         star = np.pad(star, pad_width=pad, mode='constant', constant_values=0) #padding
-
 
         if plot!=False:
             plt.figure(plot)
@@ -573,10 +467,7 @@ class Simulator():
             plt.xticks([])
             plt.yticks([])
 
-            plt.yticks([])
-
         return star
-
 
     def rotate_lc(self, inc=90, N=90, xmax=360, ret1inlist=False, mode='both',
                    synmatch=False, returndisc=False, njobs=8):
@@ -587,9 +478,7 @@ class Simulator():
         if isinstance(mode, str) == False:
             raise Exception("mode must be a string")
 
-
         mode = mode.lower()
-
 
         if hasattr(inc, "__len__") == False:
             inc = [inc]
@@ -608,24 +497,17 @@ class Simulator():
 
                 star[star == -np.inf] = 0
 
-
-                star[star == -np.inf] = 0
-
                 idx_star = star == self.__dphot
                 idx_spot = star == self.__dspot
                 idx_facu = star== self.__dfac
-
 
                 LST = self.__photmask[idx_star]
                 LSP = self.__spotmask[idx_spot]
                 LFA = self.__facmask[idx_facu]
 
-
                 star[idx_star] = star[idx_star]*LST/self.__dphot
                 star[idx_spot] = star[idx_spot]*LSP/self.__dspot
                 star[idx_facu] = star[idx_facu]*LFA/self.__dfac
-
-
 
 
                 if returndisc==True:
@@ -638,27 +520,19 @@ class Simulator():
 
 
 
-
-
-
             RES = jl.Parallel(n_jobs=njobs)(jl.delayed(multithread)(i) for i in x)
-
 
             flux = []
             for i in RES:
                 flux.append(i)
-
 
             if returndisc==False:
                 flux = np.array(flux)
             Fluxes.append(flux)
 
 
-
-
         if len(Fluxes)==1 and ret1inlist==False:
             Fluxes=Fluxes[0]
-
 
 
         if synmatch==True:
@@ -666,16 +540,12 @@ class Simulator():
             y1 = Fluxes[:halfN]
             y2 = Fluxes[halfN:]
 
-
             Fluxes = np.concatenate([y2, y1])[::-1]
-
 
         return Fluxes
 
 
-
     def transit_lc(self, radratio=0.1, disc='static', N=101, rot=0, inc=90, b=0.0,
-                         mode='both', a=1.25, angle=0.0, T=2.0, phi=0.5, retP=False, njobs=8, plotdisc=False, save_transit=None):
                          mode='both', a=1.25, angle=0.0, T=2.0, phi=0.5, retP=False, njobs=8, plotdisc=False, save_transit=None):
         """
         Modelling the planetary transit
@@ -701,16 +571,13 @@ class Simulator():
         for i in range(N):
             P.append((xp[i], yp[i]))
 
-
         def multithread(pos):
 
             mask = CAp(pos, Rp)
             planet = APh(MAT, mask)[0][3]
             flux = np.nansum(MAT) - planet
 
-
             return flux
-
 
         RES = jl.Parallel(n_jobs=njobs)(jl.delayed(multithread)(i) for i in P)
         lc = np.array(RES)
@@ -729,7 +596,6 @@ class Simulator():
             return lc, P
         elif plotdisc != False:
             if isinstance(plotdisc, str) or isinstance(plotdisc, int):
-            if isinstance(plotdisc, str) or isinstance(plotdisc, int):
                 fig = plt.figure(plotdisc)
                 ax = plt.subplot(111)
             elif 'Axes' in typename(plotdisc):
@@ -745,7 +611,6 @@ class Simulator():
         else:
             return lc
 
-
     def rotate_anim(self, inc=90, N=50, xmax=360, interval=100,
                     cmap='plasma', ylim=None, save=None, outputLC=False,
                     norm=True, backgroundLC=None, fluxunits='photon', njobs=8, wavelength=None):
@@ -760,9 +625,7 @@ class Simulator():
         #x = self.GetX(N=N, 'degrees')
         x1 = np.linspace(0, 1, N+1)[:-1]
 
-
         ax2.set_xlim(0, x1[-1])
-        if ylim!=None:
         if ylim!=None:
             ax2.set_ylim(ylim[0], ylim[1])
 
@@ -777,8 +640,6 @@ class Simulator():
         ax2.set_xlabel(r'Phase, $\phi$', fontsize=16)
 
 
-
-
         if backgroundLC is not None:
             if  hasattr(backgroundLC[0], "__len__") == False:
                 backgroundLC = [backgroundLC]
@@ -787,7 +648,6 @@ class Simulator():
             for i in backgroundLC:
                 ax2.plot(x1, i[::-1], alpha=0.5, color='black', ls=lses[lsidx], lw=2)
                 lsidx += 1
-
 
         dat = []
         for i in [False, True]:
@@ -802,36 +662,31 @@ class Simulator():
         vmin = np.nanmin(disc_data)
         vmax = np.nanmax(disc_data)
 
-        # ims = [] ####COMMENTED OUT BY DANA TO REMOVE ANIMATION
-        # for i in range(N):
-        #     im = ax1.imshow(dat[1][i], animated=True, cmap=cmap, vmin=vmin, vmax=vmax)
-        #     f = np.nanmean(dat[1][i])
-        #     im2, = ax2.plot(x1, dat[0], color='b', lw=3, zorder=1)
-        #     im2 = ax2.scatter(x1[i], f, color='r', s=100, alpha=1, zorder=2)
-        #     ims.append([im, im2])
+        ims = [] ####COMMENTED OUT BY DANA TO REMOVE ANIMATION
+        for i in range(N):
+            im = ax1.imshow(dat[1][i], animated=True, cmap=cmap, vmin=vmin, vmax=vmax)
+            f = np.nanmean(dat[1][i])
+            im2, = ax2.plot(x1, dat[0], color='b', lw=3, zorder=1)
+            im2 = ax2.scatter(x1[i], f, color='r', s=100, alpha=1, zorder=2)
+            ims.append([im, im2])
 
-        # fig.tight_layout()
-        # anim = ani.ArtistAnimation(fig, ims, interval=interval)
+        fig.tight_layout()
+        anim = ani.ArtistAnimation(fig, ims, interval=interval)
 
-        # if save!=None:
-        #     anim.save(save)
+        if save!=None:
+            anim.save(save)
 
-        if outputLC:
-            os.makedirs('./rot_lightcurve_csvs', exist_ok=True)
-            wavelength_text = f"{wavelength * 1e10:.3f}"  # meters → Ångstroms
-            np.savetxt(f"./rot_lightcurve_csvs/lightcurve_{wavelength_text}.csv", dat[0], delimiter=",", header="flux", comments="")
-            return dat[0]
-
+        # if outputLC:
+        #     os.makedirs('./rot_lightcurve_csvs', exist_ok=True)
+        #     wavelength_text = f"{wavelength * 1e10:.3f}"  # meters → Ångstroms
+        #     np.savetxt(f"./rot_lightcurve_csvs/lightcurve_{wavelength_text}.csv", dat[0], delimiter=",", header="flux", comments="")
+        #     return dat[0]
 
         else:
             return anim
 
 
-
-
     def transit_anim(self, radratio=0.1, disc='static', N=101, rot=0, inc=90, b=0.0,
-                         mode='both', angle=0.0, cmap='plasma', interval=100,
-                         save=None, a=1.25, T = 2.0, phi = 0.5):
                          mode='both', angle=0.0, cmap='plasma', interval=100,
                          save=None, a=1.25, T = 2.0, phi = 0.5):
         """
@@ -844,15 +699,11 @@ class Simulator():
         lc, P = self.transit_lc(radratio, disc, N, rot, inc, b, mode,
                                 a, angle, T, phi, retP=True)
 
-                                a, angle, T, phi, retP=True)
-
         xt = []
         for i in P:
             xt.append(i[0])
 
-
         xt = np.array(xt)
-
 
         MAT = self.stellarmodel(rot=rot, inc=inc, mode=mode)
         MAT = np.pad(MAT, pad_width=pad, mode='constant', constant_values=0)
@@ -861,7 +712,6 @@ class Simulator():
         gs = gridspec.GridSpec(1, 2, width_ratios=[8, 8])
 
         fig, ax1, ax2 = plt.figure(), plt.subplot(gs[0]), plt.subplot(gs[1])
-
 
         ax2.set_xlim(xt[0], xt[-1])
 
@@ -872,7 +722,6 @@ class Simulator():
 
         ax2.set_ylabel(r'$Flux\ Variability$', fontsize=16)
 
-
         ims = []
         for i in range(N):
             im = ax1.imshow(MAT, cmap=cmap)
@@ -882,17 +731,13 @@ class Simulator():
             im2 = ax2.scatter(xt[i], lc[i], color='r', s=100, alpha=1, zorder=2)
             ims.append([im, im2])
 
-
         fig.tight_layout()
         anim = ani.ArtistAnimation(fig, ims, interval=interval)
 
         if save!=None:
             anim.save(save)
 
-
         return anim
-
-
 
 
     def build_distribution(self, preset, fspot, Q, seed=None, lonbands=None,
@@ -900,23 +745,17 @@ class Simulator():
         pass
 
 
-
-
     def lightcurve_evolution(self, actressfeatures, Q, fsgrid, incs=[90, 60, 30],
                              modes='both', NLC=90, njobs=1, prnt=False,
                              fastFFs=True, discfrac=False, rethmaps=False):
         ffs = fsgrid
 
-
         self.setfeaturelist([])
         self.setfeaturelist([], 'spot')
 
 
-
-
         if hasattr(incs, "__len__") == False:
             incs = [incs]
-
 
         if modes=='all':
             modes = ['both', 'spotonly', 'faconly']
@@ -924,10 +763,7 @@ class Simulator():
             modes = [modes]
 
 
-
-
         LCs = []
-
 
 
         if fastFFs and discfrac==False:
@@ -935,8 +771,6 @@ class Simulator():
             getfill = H.GetFF
         else:
             getfill = self.getfill
-
-
 
 
         spots = actressfeatures['spot']
@@ -948,14 +782,10 @@ class Simulator():
             Nu = len(spots)
 
 
-
-
         facsass = facs[:Nu]
         facsun = facs[Nu:]
 
-
         Nf = len(facsun)
-
 
         assoc = False
         if len(facs)!=0:
@@ -967,10 +797,8 @@ class Simulator():
                 assoc = True
                 facs = facsun
 
-
             if prnt==True:
                 print(assoc)
-
 
         Ns = len(spots)
         Nf = len(facs)
@@ -978,15 +806,12 @@ class Simulator():
         LC = {}
         lc = self.rotate_lc(N=NLC, njobs=njobs) #featureless star lightcurve
 
-
         for i in modes:
             lcincs = {}
             for j in range(N):
                 lcincs[incs[j]] = lc
 
-
                 ff = 0.0
-
 
                 if rethmaps==True:
                     lcbsf = {'LC':lcincs, 'FFspot':ff, 'FFfac':ff, 'FFboth':ff, 'hmap':H.GetMap()}
@@ -996,11 +821,7 @@ class Simulator():
 
 
 
-
-
-
         LCs.append(LC)
-
 
         'spots first'
         ffsidx = 0
@@ -1010,7 +831,6 @@ class Simulator():
             if prnt==True:
                 print('spots: {}/{}'.format(s+1, Ns))
 
-
             self.addfeature(spots[s], feature='spot')
             if fastFFs and discfrac==False:
                 H.Add2Map('spot', *spots[s].values())
@@ -1019,14 +839,11 @@ class Simulator():
                 if fastFFs and discfrac==False:
                     H.Add2Map('facula', *facsass[s].values())
 
-
             elif assoc == 'clump': #clump of associated faculae
-
 
                 clumpsize = Nc[s]
                 if prnt==True:
                     print(clumpsize)
-
 
                 for i in range(clumpsize):
                     self.addfeature(facsass[fu])
@@ -1036,13 +853,7 @@ class Simulator():
                     if prnt==True:
                         print('clump faculae: {}/{}'.format(fu, len(facsass)))
 
-
             ffspot = getfill('spot')
-
-
-            if ffspot > ffs[ffsidx]:
-
-
 
 
             if ffspot > ffs[ffsidx]:
@@ -1059,33 +870,25 @@ class Simulator():
                         f += 1
                         break
 
-
                 LC = {}
                 for i in modes:
                     lc = self.rotate_lc(inc = incs, ret1inlist=True, mode=i,
-                    lc = self.rotate_lc(inc = incs, ret1inlist=True, mode=i,
                                     njobs=njobs, N=NLC)
-
 
                     lcincs = {}
                     for j in range(N):
                         lcincs[incs[j]] = lc[j]
 
-
                     spotff = getfill('spot', mode=i)
                     facff = getfill('facula', mode=i)
                     bothff = getfill('spot+fac', mode=i)
-
 
                     if rethmaps==True:
                         lcbsf = {'LC':lcincs, 'FFspot':spotff, 'FFfac':facff, 'FFboth':bothff, 'hmap':H.GetMap(i)}
                     else:
                         lcbsf = {'LC':lcincs, 'FFspot':spotff, 'FFfac':facff, 'FFboth':bothff}
 
-
                     LC[i] = lcbsf
-
-
 
 
                 LCs.append(LC)
