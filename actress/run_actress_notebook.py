@@ -97,8 +97,6 @@ class Transitsim(object):
 
             N = 50
 
-            lcr = sim.rotate_lc(inc=90,N=N, mode='faconly') #calculate single-period rotational lightcurve
-
             print(f'{wavelength * 1e10:.3f} Angstroms')
             wavelength_text = f"{wavelength * 1e10:.3f}"  # meters → Ångstroms
             wavelength_fac_text = f"{wavelength_fac * 1e10:.3f}"
@@ -113,17 +111,18 @@ class Transitsim(object):
                 lightcurve_save_directory = f'./outputs/lightcurves/{lightcurve_save}/'
                 os.makedirs(lightcurve_save_directory, exist_ok=True)
                 lightcurve_save = f'{lightcurve_save_directory}lc_{(wavelength_text)}.txt'
+                lcr = sim.rotate_lc(inc=90,N=N, mode='faconly') #calculate single-period rotational lightcurve
                 np.savetxt(lightcurve_save, lcr)
 
-            lct = sim.transit_lc(radratio=self.rp, inc=90, b=self.b, N=self.N, mode=self.mode, a=self.a, T=self.T, phi = self.phi, save_transit=None) #calculate transit lightcurve, with planet/star radius ratio rr
+            # lct = sim.transit_lc(radratio=self.rp, inc=90, b=self.b, N=self.N, mode=self.mode, a=self.a, T=self.T, phi = self.phi, save_transit=None) #calculate transit lightcurve, with planet/star radius ratio rr
             
-            tmin = 0.5*self.T*(0.5 - self.phi)
-            tmax = 0.5*self.T*(0.5 + self.phi)
-            t = np.linspace(0, tmax - tmin, self.N)
+            # tmin = 0.5*self.T*(0.5 - self.phi)
+            # tmax = 0.5*self.T*(0.5 + self.phi)
+            # t = np.linspace(0, tmax - tmin, self.N)
             
             
             
-            return t, lct
+            #return t, lct
 
     def sim_spectrum(self, hd_ld_file, fac_ld_file, gif_save=True, lightcurve_save=True):
         hd_ld = np.loadtxt(hd_ld_file)
@@ -159,13 +158,13 @@ class Transitsim(object):
                     c3_fac = 0.1
                     c4_fac = 0.1
             if self.ld == 'claret':
-                t, lct = self.actress_run(wavelength, wavelength_fac, I0,c1,c2,I0_fac,c1_fac,c2_fac,c3=c3,c4=c4,c3_fac=c3_fac,c4_fac=c4_fac, gif_save=gif_save, lightcurve_save=lightcurve_save) #Dana edit
+                self.actress_run(wavelength, wavelength_fac, I0,c1,c2,I0_fac,c1_fac,c2_fac,c3=c3,c4=c4,c3_fac=c3_fac,c4_fac=c4_fac, gif_save=gif_save, lightcurve_save=lightcurve_save) #Dana edit
             else:
-                t, lct = self.actress_run(wavelength, wavelength_fac,I0,c1,c2,I0_fac,c1_fac,c2_fac, gif_save=gif_save, lightcurve_save=lightcurve_save) #Dana edit 
-            val.append(lct)
-            time.append(t)
-        val = np.asarray(val)
-        time = np.asarray(time)
+                self.actress_run(wavelength, wavelength_fac,I0,c1,c2,I0_fac,c1_fac,c2_fac, gif_save=gif_save, lightcurve_save=lightcurve_save) #Dana edit 
+        #     val.append(lct)
+        #     time.append(t)
+        # val = np.asarray(val)
+        # time = np.asarray(time)
 
 
     def sim_phot(self, hd_ld_file, fac_ld_file, save=None):

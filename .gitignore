@@ -1,5 +1,7 @@
-# Ignore CSV and TXT files in outputs/
+# Ignore CSV, TXT, and GIF files in outputs/
 outputs/*.csv
 outputs/*.txt
 outputs/**/*.csv
 outputs/**/*.txt
+outputs/*.gif
+outputs/**/*.gif
