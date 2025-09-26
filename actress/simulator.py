@@ -470,7 +470,7 @@ class Simulator():
         return star
 
     def rotate_lc(self, inc=90, N=90, xmax=360, ret1inlist=False, mode='both',
-                   synmatch=False, returndisc=False, njobs=8):
+                   synmatch=False, returndisc=False, njobs=8, save_coords=True, wavelength = None):
         """
         Calculates rotational lightcurve of model star, uses multithreading
         Supports several inclinations as input
@@ -488,7 +488,17 @@ class Simulator():
         
 
         x = np.linspace(0, xmax, N+1)[:-1]
-        print(f'v2p: {v2p}, x: {x}')
+        #print(f'v2p: {v2p}, x: {x}')
+        
+        # Save the map if requested
+        # if save_coords and wavelength is not None:
+        #     os.makedirs('./outputs/healpix', exist_ok=True)
+        #     np.save(f'./outputs/healpix/healpix_map_{wavelength}.npy', m)
+            #print(f"HealPix map saved to 'healpix_map.npy'")
+            #print(f"Map shape: {m.shape}, nside: {hp.npix2nside(len(m))}")
+        
+        
+            #####
         Fluxes = []
         for j in inc:
             j -= 90
@@ -513,6 +523,8 @@ class Simulator():
 
                 if returndisc==True:
                     entry = star
+                    #os.makedirs('./outputs/returndisc', exist_ok=True)
+                    #np.save(f'./outputs/returndisc/disc_{wavelength}_phase_{xpos:.2f}.npy', star)
                 elif returndisc==False:
                     entry = np.nanmean(star)
                 else:

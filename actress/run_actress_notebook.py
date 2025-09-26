@@ -59,6 +59,33 @@ class Transitsim(object):
     def actress_run(self,wavelength, wavelength_fac, I0,c1,c2, I0_fac,c1_fac,c2_fac, c3=None,c4=None,c3_fac=None,c4_fac=None, gif_save=None, lightcurve_save=None):
         sim = ac.Simulator() #create simulation instance
         sim.setxsize(self.res)
+
+        # Plot HealPix map
+        import healpy as hp
+        m = sim.makemap(mode=self.mode)
+        hp.mollview(m, title=f'HealPix Map ({self.mode})', cmap='viridis')
+       # plt.show()
+        
+        # Calculate surface normal projection (mu) and line-of-sight velocity
+        nside = hp.npix2nside(len(m))
+        theta, phi = hp.pix2ang(nside, np.arange(len(m)))
+        
+        # Surface normal projection (mu)
+        mu = np.sin(theta) * np.cos(phi)
+        mu[mu <= 0] = np.nan
+        hp.mollview(mu, title='Surface Normal Projection (μ) - Front Side Only', cmap='plasma')
+        plt.show()
+        
+        # Line-of-sight velocity for vertical axis rotation
+        v_eq = 10  # Equatorial velocity in m/s
+        v_los = v_eq * np.sin(theta) * np.sin(phi)
+        front_mask = np.sin(theta) * np.cos(phi) > 0
+        v_los[~front_mask] = np.nan
+        hp.mollview(v_los, title='Line-of-Sight Velocity (m/s) - Vertical Axis Rotation', cmap='RdBu')
+        plt.show()
+
+
+
         #sim.setresolution(15)
 
             #define limb-darkening parameters (lists in a dictionary):
@@ -87,6 +114,8 @@ class Transitsim(object):
                 for i in range(0,len(self.fac_r)): 
                     sim.addfeature(r = self.fac_r[i], lon= self.fac_long[i], lat=self.fac_lat[i], feature = 'fac') #add a circular facular region with radius r [deg], longitude lon [deg] and latitude lat [deg]
 
+
+
         """
         for all following, 
         i: stellar inclination [deg] (i=90 deg = equator-on)
@@ -111,7 +140,7 @@ class Transitsim(object):
                 lightcurve_save_directory = f'./outputs/lightcurves/{lightcurve_save}/'
                 os.makedirs(lightcurve_save_directory, exist_ok=True)
                 lightcurve_save = f'{lightcurve_save_directory}lc_{(wavelength_text)}.txt'
-                lcr = sim.rotate_lc(inc=90,N=N, mode='faconly') #calculate single-period rotational lightcurve
+                lcr = sim.rotate_lc(inc=90,N=N, mode='faconly', wavelength=wavelength_text) #calculate single-period rotational lightcurve
                 np.savetxt(lightcurve_save, lcr)
 
             # lct = sim.transit_lc(radratio=self.rp, inc=90, b=self.b, N=self.N, mode=self.mode, a=self.a, T=self.T, phi = self.phi, save_transit=None) #calculate transit lightcurve, with planet/star radius ratio rr
