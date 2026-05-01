@@ -18,3 +18,8 @@ outputs/**/*.gif
 __pycache__/
 *.py[cod]
 *.class
+
+# Python eggs
+*.egg
+*.egg-info/
+.eggs/
