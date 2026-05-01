@@ -12,3 +12,4 @@ outputs/**/*.gif
 *.npy
 *.csv
 *.gif
+*.pyc
