@@ -49,20 +49,20 @@ except:
         from hmap import *
 
 try:
-    from .simulator import *
+    from .simulator_broken import *
 except:
     try:
         from actress.simulator import *
     except:
-        from simulator import *
+        from simulator_broken import *
 
 try:
-    from .contrasts import *
+    from .contrasts_broken import *
 except:
     try:
         from actress.contrasts import *
     except:
-        from contrasts import *
+        from contrasts_broken import *
 
 try:
     from .run_actress_notebook import *
