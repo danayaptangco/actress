@@ -5,3 +5,10 @@ outputs/**/*.csv
 outputs/**/*.txt
 outputs/*.gif
 outputs/**/*.gif
+
+
+# Ignore all txt, npy, and csv files globally
+*.txt
+*.npy
+*.csv
+*.gif
