@@ -115,13 +115,13 @@ class Simulator():
         self.__fstrips = fac_strips
         self.__sstrips = spot_strips
 
-        self.__xs = xsize
+        self.__xs = xsize #pulls resolution from run_actress_notebook.py
 
 
 
         if (resolution < 1) or (resolution > 30):
             raise Exception("resolution must be an integer between 1 and 30 ({} provided)".format(resolution))
-        self.__res = 2**int(4) #Dana edit resolution
+        self.__res = 2**int(6) 
 
 
         self.__ld = ld
@@ -469,7 +469,7 @@ class Simulator():
 
         return star
 
-    def rotate_lc(self, inc=90, N=90, xmax=360, ret1inlist=False, mode='both',
+    def rotate_lc(self, v_eq=0, inc=90, N=90, xmax=360, ret1inlist=False, mode='both',
                    synmatch=False, returndisc=False, njobs=8, save_coords=True, wavelength = None):
         """
         Calculates rotational lightcurve of model star, uses multithreading
@@ -484,8 +484,27 @@ class Simulator():
             inc = [inc]
 
         m = self.makemap(mode=mode)
+        
+
+        
         v2p = functools.partial(hp.vec2pix, hp.npix2nside(len(m))) 
-        print(f"v2p: {v2p}")
+
+        # Create velocity map and wavelength shift in HealPix coordinates (once)
+        nside = hp.npix2nside(len(m))
+        theta, phi = hp.pix2ang(nside, np.arange(len(m)))
+        v_eq = v_eq  # Equatorial rotational velocity in m/s
+        v_stellar = np.sin(theta) * v_eq
+        v_los_map = v_stellar * np.sin(phi)
+        
+        c = 3e8  # Speed of light in m/s
+        wavelength_shift_map = - float(wavelength) * v_los_map / c #wavelength shift in angstroms, negative to put blueshift on the left side
+
+        # Project wavelength shift map once at rotation position 0 (or any specific xpos you want)
+        xpos_for_velocity = 0  # Or any other rotation angle
+        wavelength_shift_proj = hp.projector.OrthographicProj(rot=[xpos_for_velocity, inc[0]-90], half_sky=True, xsize=self.__xs).projmap(wavelength_shift_map, v2p)
+        wavelength_shift_proj[wavelength_shift_proj == -np.inf] = 0  # Set background to 0 instead of nan for consistency
+
+
 
 
         x = np.linspace(0, xmax, N+1)[:-1]
@@ -506,6 +525,17 @@ class Simulator():
             #flux = np.zeros(N)
             def multithread(xpos): #local multithreading joblib function
                 star = hp.projector.OrthographicProj(rot=[xpos, j], half_sky=True, xsize=self.__xs).projmap(m, v2p)
+
+                # if xpos == 0:  # Plot just once to show the grid cells set by xsize
+                #     plot_star = np.copy(star)
+                #     plot_star[plot_star == -np.inf] = np.nan
+                #     plt.figure(figsize=(7, 7))
+                #     # 'nearest' interpolation lets you clearly see the individual pixel cells
+                #     plt.imshow(plot_star, cmap='plasma', interpolation='nearest')
+                #     plt.grid(color='white', linestyle='-', linewidth=0.5, alpha=0.3)
+                #     plt.title(f"Orthographic Projection Cells (xsize={self.__xs})")
+                #     plt.colorbar(label="Pixel Value")
+                #     plt.show()
 
                 star[star == -np.inf] = 0
 
@@ -557,8 +587,8 @@ class Simulator():
             y2 = Fluxes[halfN:]
 
             Fluxes = np.concatenate([y2, y1])[::-1]
-
-        return Fluxes
+        
+        return Fluxes, wavelength_shift_proj
 
 
     def transit_lc(self, radratio=0.1, disc='static', N=101, rot=0, inc=90, b=0.0,
@@ -667,7 +697,7 @@ class Simulator():
 
         dat = []
         for i in [False, True]:
-            d = self.rotate_lc(inc=inc, N=N, xmax=xmax, returndisc=i, njobs=njobs)
+            d, _ = self.rotate_lc(inc=inc, N=N, xmax=xmax, returndisc=i, njobs=njobs)
             if norm==True:
                 if i==False:
                     dm = d.mean()
@@ -820,7 +850,7 @@ class Simulator():
         Nf = len(facs)
         N = len(incs)
         LC = {}
-        lc = self.rotate_lc(N=NLC, njobs=njobs) #featureless star lightcurve
+        lc, _ = self.rotate_lc(N=NLC, njobs=njobs) #featureless star lightcurve
 
         for i in modes:
             lcincs = {}
@@ -888,7 +918,7 @@ class Simulator():
 
                 LC = {}
                 for i in modes:
-                    lc = self.rotate_lc(inc = incs, ret1inlist=True, mode=i,
+                    lc, _ = self.rotate_lc(inc = incs, ret1inlist=True, mode=i,
                                     njobs=njobs, N=NLC)
 
                     lcincs = {}

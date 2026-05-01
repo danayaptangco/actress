@@ -9,9 +9,8 @@ from multiprocessing import Pool
 class Transitparams(object):
     
     def __init__(self):
-        self.res = None
-        self.rp = None
-        self.b = None
+        self.res2d = None
+        self.res3d = None
         self.N = None
         self.mode = None
         self.fac_r = None
@@ -20,18 +19,22 @@ class Transitparams(object):
         self.fac_band = False
         self.fac_band_low = None
         self.fac_band_high = None
+        self.ld = None
+        self.v_eq = None
+        self.inc = None
+
+        self.rp = None
+        self.b = None
         self.a = None
         self.T = None
         self.phi = None
-        self.ld = None
+
 
 class Transitsim(object):
     
     def __init__(self,params):
-        self.res = params.res
-        self.rp = params.rp
-        self.b = params.b
-        self.N = params.N
+        self.res2d = params.res2d
+        self.res3d = params.res3d
         self.mode = params.mode
         self.fac_r = params.fac_r
         self.fac_long = params.fac_long
@@ -39,10 +42,19 @@ class Transitsim(object):
         self.fac_band = params.fac_band
         self.fac_band_low = params.fac_band_low
         self.fac_band_high = params.fac_band_high
+        self.ld = params.ld
+        self.v_eq = params.v_eq
+        self.inc = params.inc
+
+        self.rp = params.rp
+        self.b = params.b
+        self.N = params.N
         self.a = params.a
         self.T = params.T
         self.phi = params.phi
-        self.ld = params.ld
+
+
+
         
     def ld_law(self, mu, I0, a, b, c=None, d=None):
         if self.ld == 'quadratic':
@@ -56,70 +68,15 @@ class Transitsim(object):
             
         return y
         
-    def actress_run(self,wavelength, wavelength_fac, I0,c1,c2, I0_fac,c1_fac,c2_fac, c3=None,c4=None,c3_fac=None,c4_fac=None, gif_save=None, lightcurve_save=None):
+    def actress_run(self,wavelength, wavelength_fac, I0,c1,c2, I0_fac,c1_fac,c2_fac, c3=None,c4=None,c3_fac=None,c4_fac=None, gif_save=None, lightcurve_save=None, disk_save=None):
         sim = ac.Simulator() #create simulation instance
-        sim.setxsize(self.res)
+        sim.setxsize(self.res2d)
+        sim.setresolution(self.res3d) #set resolution of 3d star (number of points across diameter)
+        
 
         # Plot HealPix map
-        import healpy as hp
-        inc=np.pi/6
-        m = sim.makemap(mode=self.mode)
-        hp.mollview(m, title=f'HealPix Map ({self.mode})', cmap='viridis')
-       # plt.show()
-        
-        # Calculate surface normal projection (mu) and line-of-sight velocity
-        nside = hp.npix2nside(len(m))
-        theta, phi = hp.pix2ang(nside, np.arange(len(m)))
-        
-        
-        # Surface normal projection (mu)
-        mu =  np.sqrt(1-(phi/np.pi))#np.sin(theta) * np.cos(phi)
-        mu[mu <= 0] = np.nan
-        # hp.mollview(mu, title='Surface Normal Projection (μ) - Front Side Only', cmap='plasma')
-        # plt.show()
-        mu = np.sin(theta) * np.cos(phi)
-
-        # Mask the back half (where mu <= 0)
-        theta_masked = np.where(mu > 0, theta / np.pi, np.nan)
-        hp.mollview(theta_masked, title='π radians, Theta (Front Side Only)', cmap='RdBu')
-        plt.show()
-        phi_masked = np.where(mu > 0, phi / np.pi, np.nan)
-        hp.mollview(phi_masked, title='π radians, phi (Front Side Only)', cmap='RdBu')
-        plt.show()
-     
-        # # Mask the back sides (where mu <= 0)
-        # lon_mask = np.sin(phi)
-        # lon_masked = np.where(mu > 0, lon_mask, np.nan)
-        # hp.mollview(lon_masked, title='sin(phi), Front Side Only', cmap='RdBu')
-        # plt.show()
-
-        lat_mask = np.sin(theta)
-        lat_masked = np.where(mu > 0, lat_mask, np.nan)
-        hp.mollview(lat_masked, title='sin(theta), Front Side Only', cmap='RdBu')
-        plt.show()
-
-        # lon_mask = np.sin(phi)
-        # lon_masked = np.where(mu > 0, lon_mask, np.nan)
-        # hp.mollview(lon_masked, title='sin(phi), Front Side Only', cmap='RdBu')
-        # plt.show()
-
-        #line-of-sight velocity for vertical axis rotation
-        front_mask = np.sin(theta) * np.cos(phi) > 0
-
-        v_eq = 10  # Equatorial velocity in m/s
-        v_star = np.sin(theta) * v_eq
-        v_los = v_star * np.sin(phi)
-        v_los[~front_mask] = np.nan
-
-        wavelength_shift = v_los / 3e8 * wavelength  # doppler shift in meters
-
-        hp.mollview(v_star, title=f'V_star (max {v_eq} m/s)', cmap='RdBu')
-
-        hp.mollview(v_los, title=f'Line-of-Sight Velocity (max {v_eq} m/s)', cmap='RdBu')
-        plt.show()
-        hp.mollview(wavelength_shift*1e10, title='Wavelength Shift (Angstroms)', cmap='RdBu')
-        plt.show()
-        #sim.setresolution(15)
+        #import healpy as hp
+    
 
             #define limb-darkening parameters (lists in a dictionary):
         ld_dict = {'phot':[I0,c1,c2,c3,c4], #photospheric coeffs
@@ -147,7 +104,9 @@ class Transitsim(object):
                 for i in range(0,len(self.fac_r)): 
                     sim.addfeature(r = self.fac_r[i], lon= self.fac_long[i], lat=self.fac_lat[i], feature = 'fac') #add a circular facular region with radius r [deg], longitude lon [deg] and latitude lat [deg]
 
+        disk_fill = sim.getdiscfill(feature='fac', inc = self.inc) 
 
+        print(f'Facular filling factor {disk_fill}')
 
         """
         for all following, 
@@ -157,24 +116,34 @@ class Transitsim(object):
         """
         with Pool() as pool:
 
-            N = 50
 
-            print(f'{wavelength * 1e10:.3f} Angstroms')
-            wavelength_text = f"{wavelength * 1e10:.3f}"  # meters → Ångstroms
-            wavelength_fac_text = f"{wavelength_fac * 1e10:.3f}"
+            print(f'{wavelength * 1e10:.4f} Angstroms')
+            wavelength_text = f"{wavelength * 1e10:.4f}"  # meters → Ångstroms
+            wavelength_fac_text = f"{wavelength_fac * 1e10:.4f}"
+
+            # Construct a header with all self parameters
+            header_str = f"disk_fill_phase_0={disk_fill}, " + ', '.join([f"{k}={v}" for k, v in self.__dict__.items()])
 
             if gif_save:
                 gif_save_directory = f'./outputs/gifs/{gif_save}/'
                 os.makedirs(gif_save_directory, exist_ok=True)
                 gif_save = f'{gif_save_directory}anim_{(wavelength_text)}.gif'
-                rotate_anim = sim.rotate_anim(inc=90, N=N, fluxunits='erg', save=gif_save, norm=False, wavelength=wavelength, outputLC=False) #create animation of rotating star and resulting lightcurve (same as above) #Dana edit making N=different from 10
+                rotate_anim = sim.rotate_anim(inc=self.inc, N=self.N, fluxunits='erg', save=gif_save, norm=False, wavelength=wavelength, outputLC=False) #create animation of rotating star and resulting lightcurve (same as above) #Dana edit making N=different from 10
 
             if lightcurve_save:
                 lightcurve_save_directory = f'./outputs/lightcurves/{lightcurve_save}/'
                 os.makedirs(lightcurve_save_directory, exist_ok=True)
                 lightcurve_save = f'{lightcurve_save_directory}lc_{(wavelength_text)}.csv'
-                lcr = sim.rotate_lc(inc=inc,N=N, mode='faconly', wavelength=wavelength_text) #calculate single-period rotational lightcurve
-                np.savetxt(lightcurve_save, lcr)
+                lcr, _ = sim.rotate_lc(v_eq=self.v_eq, inc=self.inc, N=self.N, mode='faconly', wavelength=wavelength_text, returndisc=False) #calculate single-period rotational lightcurve
+                np.savetxt(lightcurve_save, lcr, header=header_str)
+
+            if disk_save:
+                disk_save_directory = f'./outputs/full_disks_and_wavelength_shifts/{disk_save}/'
+                os.makedirs(disk_save_directory, exist_ok=True)
+                disk_save = f'{disk_save_directory}disk_inp{(wavelength_text)}.npy'
+                intensity_map, wavelength_shifts = sim.rotate_lc(v_eq=self.v_eq, inc=self.inc, N=self.N, mode='faconly', wavelength=wavelength_text, returndisc=True) #calculate single-period rotational lightcurve
+                np.save(disk_save, intensity_map)
+                np.savetxt(f'{disk_save_directory}/wavelength_shifts_inp{(wavelength_text)}.csv', wavelength_shifts, header=header_str)
 
             # lct = sim.transit_lc(radratio=self.rp, inc=90, b=self.b, N=self.N, mode=self.mode, a=self.a, T=self.T, phi = self.phi, save_transit=None) #calculate transit lightcurve, with planet/star radius ratio rr
             
@@ -186,7 +155,7 @@ class Transitsim(object):
             
             #return t, lct
 
-    def sim_spectrum(self, hd_ld_file, fac_ld_file, gif_save=True, lightcurve_save=True):
+    def sim_spectrum(self, hd_ld_file, fac_ld_file, gif_save=True, lightcurve_save=True, disk_save=True):
         hd_ld = np.loadtxt(hd_ld_file)
 
         if self.mode == 'faconly':
@@ -220,9 +189,9 @@ class Transitsim(object):
                     c3_fac = 0.1
                     c4_fac = 0.1
             if self.ld == 'claret':
-                self.actress_run(wavelength, wavelength_fac, I0,c1,c2,I0_fac,c1_fac,c2_fac,c3=c3,c4=c4,c3_fac=c3_fac,c4_fac=c4_fac, gif_save=gif_save, lightcurve_save=lightcurve_save) #Dana edit
+                self.actress_run(wavelength, wavelength_fac, I0,c1,c2,I0_fac,c1_fac,c2_fac,c3=c3,c4=c4,c3_fac=c3_fac,c4_fac=c4_fac, gif_save=gif_save, lightcurve_save=lightcurve_save, disk_save=disk_save) #Dana edit
             else:
-                self.actress_run(wavelength, wavelength_fac,I0,c1,c2,I0_fac,c1_fac,c2_fac, gif_save=gif_save, lightcurve_save=lightcurve_save) #Dana edit 
+                self.actress_run(wavelength, wavelength_fac,I0,c1,c2,I0_fac,c1_fac,c2_fac, gif_save=gif_save, lightcurve_save=lightcurve_save, disk_save=disk_save) #Dana edit 
         #     val.append(lct)
         #     time.append(t)
         # val = np.asarray(val)
