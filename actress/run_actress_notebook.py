@@ -52,6 +52,8 @@ class Transitsim(object):
         self.a = params.a
         self.T = params.T
         self.phi = params.phi
+        self.hd_ld_file = None
+        self.fac_ld_file = None
 
 
 
@@ -156,6 +158,8 @@ class Transitsim(object):
             #return t, lct
 
     def sim_spectrum(self, hd_ld_file, fac_ld_file, gif_save=True, lightcurve_save=True, disk_save=True):
+        self.hd_ld_file = hd_ld_file
+        self.fac_ld_file = fac_ld_file
         hd_ld = np.loadtxt(hd_ld_file)
 
         if self.mode == 'faconly':

@@ -309,7 +309,7 @@ class Simulator():
             ff += len(hmap[hmap==3])/len(hmap)
             return ff
         elif feature=='photosphere':
-            pass
+            pasc
         else:
             if len(self.getfeaturelist(feature))==0 and len(self.getstrips(feature))==0:
                 return 0.0
