@@ -494,7 +494,11 @@ class Simulator():
         theta, phi = hp.pix2ang(nside, np.arange(len(m)))
         v_eq = v_eq  # Equatorial rotational velocity in m/s
         v_stellar = np.sin(theta) * v_eq
-        v_los_map = v_stellar * np.sin(phi)
+    
+        inclination = np.radians(inc[0])   # degrees -> radians
+
+        v_los_map = v_stellar * np.sin(phi) * np.sin(inclination)
+       # v_los_map = v_stellar * np.sin(phi)
         
         c = 3e8  # Speed of light in m/s
         wavelength_shift_map = - float(wavelength) * v_los_map / c #wavelength shift in angstroms, negative to put blueshift on the left side
