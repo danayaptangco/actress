@@ -2,9 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import actress as ac
-import multiprocessing as mp
-mp.set_start_method('fork',force=True)
-from multiprocessing import Pool
 
 class Transitparams(object):
     
@@ -70,7 +67,7 @@ class Transitsim(object):
             
         return y
         
-    def actress_run(self,wavelength, wavelength_fac, I0,c1,c2, I0_fac,c1_fac,c2_fac, c3=None,c4=None,c3_fac=None,c4_fac=None, gif_save=None, lightcurve_save=None, disk_save=None):
+    def actress_run(self,wavelength, wavelength_fac, I0,c1,c2, I0_fac,c1_fac,c2_fac, c3=None,c4=None,c3_fac=None,c4_fac=None, gif_save=None, lightcurve_save=None, disk_save=None, transit_save=None):
         sim = ac.Simulator() #create simulation instance
         sim.setxsize(self.res2d)
         sim.setresolution(self.res3d) #set resolution of 3d star (number of points across diameter)
@@ -116,48 +113,42 @@ class Transitsim(object):
         N: number of datapoints
         mode: available modes - 'both' (spot+fac), 'faconly' (faculae only), 'spotonly' (spots only), 'quiet' (no features)
         """
-        with Pool() as pool:
+        print(f'{wavelength * 1e10:.4f} Angstroms')
+        wavelength_text = f"{wavelength * 1e10:.4f}"  # meters → Ångstroms
+        wavelength_fac_text = f"{wavelength_fac * 1e10:.4f}"
 
+        # Construct a header with all self parameters
+        header_str = f"disk_fill_phase_0={disk_fill}, " + ', '.join([f"{k}={v}" for k, v in self.__dict__.items()])
 
-            print(f'{wavelength * 1e10:.4f} Angstroms')
-            wavelength_text = f"{wavelength * 1e10:.4f}"  # meters → Ångstroms
-            wavelength_fac_text = f"{wavelength_fac * 1e10:.4f}"
+        if gif_save:
+            gif_save_directory = f'./outputs/gifs/{gif_save}/'
+            os.makedirs(gif_save_directory, exist_ok=True)
+            gif_save = f'{gif_save_directory}anim_{(wavelength_text)}.gif'
+            rotate_anim = sim.rotate_anim(inc=self.inc, N=self.N, fluxunits='erg', save=gif_save, norm=False, wavelength=wavelength, outputLC=False) #create animation of rotating star and resulting lightcurve (same as above) #Dana edit making N=different from 10
 
-            # Construct a header with all self parameters
-            header_str = f"disk_fill_phase_0={disk_fill}, " + ', '.join([f"{k}={v}" for k, v in self.__dict__.items()])
+        if lightcurve_save:
+            lightcurve_save_directory = f'./outputs/lightcurves/{lightcurve_save}/'
+            os.makedirs(lightcurve_save_directory, exist_ok=True)
+            lightcurve_save = f'{lightcurve_save_directory}lc_{(wavelength_text)}.csv'
+            lcr, _ = sim.rotate_lc(v_eq=self.v_eq, inc=self.inc, N=self.N, mode='faconly', wavelength=wavelength_text, returndisc=False) #calculate single-period rotational lightcurve
+            np.savetxt(lightcurve_save, lcr, header=header_str)
 
-            if gif_save:
-                gif_save_directory = f'./outputs/gifs/{gif_save}/'
-                os.makedirs(gif_save_directory, exist_ok=True)
-                gif_save = f'{gif_save_directory}anim_{(wavelength_text)}.gif'
-                rotate_anim = sim.rotate_anim(inc=self.inc, N=self.N, fluxunits='erg', save=gif_save, norm=False, wavelength=wavelength, outputLC=False) #create animation of rotating star and resulting lightcurve (same as above) #Dana edit making N=different from 10
+        if disk_save:
+            disk_save_directory = f'./outputs/full_disks_and_wavelength_shifts/{disk_save}/'
+            os.makedirs(disk_save_directory, exist_ok=True)
+            disk_save = f'{disk_save_directory}disk_inp{(wavelength_text)}.npy'
+            intensity_map, wavelength_shifts = sim.rotate_lc(v_eq=self.v_eq, inc=self.inc, N=self.N, mode='faconly', wavelength=wavelength_text, returndisc=True) #calculate single-period rotational lightcurve
+            np.save(disk_save, intensity_map)
+            np.savetxt(f'{disk_save_directory}/wavelength_shifts_inp{(wavelength_text)}.csv', wavelength_shifts, header=header_str)
 
-            if lightcurve_save:
-                lightcurve_save_directory = f'./outputs/lightcurves/{lightcurve_save}/'
-                os.makedirs(lightcurve_save_directory, exist_ok=True)
-                lightcurve_save = f'{lightcurve_save_directory}lc_{(wavelength_text)}.csv'
-                lcr, _ = sim.rotate_lc(v_eq=self.v_eq, inc=self.inc, N=self.N, mode='faconly', wavelength=wavelength_text, returndisc=False) #calculate single-period rotational lightcurve
-                np.savetxt(lightcurve_save, lcr, header=header_str)
+        if transit_save:
+            lct = sim.transit_lc(radratio=self.rp, inc=90, b=self.b, N=self.N, mode=self.mode, a=self.a, T=self.T, phi = self.phi) #calculate transit lightcurve, with planet/star radius ratio rr
+            transit_save_directory = f'./outputs/transit_lightcurves/{transit_save}/'
+            os.makedirs(transit_save_directory, exist_ok=True)
+            transit_save = f'{transit_save_directory}transit_lc_{(wavelength_text)}.csv'
+            np.savetxt(transit_save, lct, header=header_str)
 
-            if disk_save:
-                disk_save_directory = f'./outputs/full_disks_and_wavelength_shifts/{disk_save}/'
-                os.makedirs(disk_save_directory, exist_ok=True)
-                disk_save = f'{disk_save_directory}disk_inp{(wavelength_text)}.npy'
-                intensity_map, wavelength_shifts = sim.rotate_lc(v_eq=self.v_eq, inc=self.inc, N=self.N, mode='faconly', wavelength=wavelength_text, returndisc=True) #calculate single-period rotational lightcurve
-                np.save(disk_save, intensity_map)
-                np.savetxt(f'{disk_save_directory}/wavelength_shifts_inp{(wavelength_text)}.csv', wavelength_shifts, header=header_str)
-
-            # lct = sim.transit_lc(radratio=self.rp, inc=90, b=self.b, N=self.N, mode=self.mode, a=self.a, T=self.T, phi = self.phi, save_transit=None) #calculate transit lightcurve, with planet/star radius ratio rr
-            
-            # tmin = 0.5*self.T*(0.5 - self.phi)
-            # tmax = 0.5*self.T*(0.5 + self.phi)
-            # t = np.linspace(0, tmax - tmin, self.N)
-            
-            
-            
-            #return t, lct
-
-    def sim_spectrum(self, hd_ld_file, fac_ld_file, gif_save=True, lightcurve_save=True, disk_save=True):
+    def sim_spectrum(self, hd_ld_file, fac_ld_file, gif_save=None, lightcurve_save=None, disk_save=None, transit_save=None):
         self.hd_ld_file = hd_ld_file
         self.fac_ld_file = fac_ld_file
         hd_ld = np.loadtxt(hd_ld_file)
@@ -193,9 +184,9 @@ class Transitsim(object):
                     c3_fac = 0.1
                     c4_fac = 0.1
             if self.ld == 'claret':
-                self.actress_run(wavelength, wavelength_fac, I0,c1,c2,I0_fac,c1_fac,c2_fac,c3=c3,c4=c4,c3_fac=c3_fac,c4_fac=c4_fac, gif_save=gif_save, lightcurve_save=lightcurve_save, disk_save=disk_save) #Dana edit
+                self.actress_run(wavelength, wavelength_fac, I0,c1,c2,I0_fac,c1_fac,c2_fac,c3=c3,c4=c4,c3_fac=c3_fac,c4_fac=c4_fac, gif_save=gif_save, lightcurve_save=lightcurve_save, disk_save=disk_save, transit_save=transit_save) #Dana edit
             else:
-                self.actress_run(wavelength, wavelength_fac,I0,c1,c2,I0_fac,c1_fac,c2_fac, gif_save=gif_save, lightcurve_save=lightcurve_save, disk_save=disk_save) #Dana edit 
+                self.actress_run(wavelength, wavelength_fac,I0,c1,c2,I0_fac,c1_fac,c2_fac, gif_save=gif_save, lightcurve_save=lightcurve_save, disk_save=disk_save, transit_save=transit_save) #Dana edit 
         #     val.append(lct)
         #     time.append(t)
         # val = np.asarray(val)

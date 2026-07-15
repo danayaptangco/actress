@@ -480,6 +480,7 @@ class Simulator():
 
         mode = mode.lower()
 
+
         if hasattr(inc, "__len__") == False:
             inc = [inc]
 
@@ -570,7 +571,7 @@ class Simulator():
 
 
 
-            RES = jl.Parallel(n_jobs=njobs)(jl.delayed(multithread)(i) for i in x)
+            RES = jl.Parallel(n_jobs=njobs, backend='threading')(jl.delayed(multithread)(i) for i in x)
 
             flux = []
             for i in RES:
@@ -629,9 +630,9 @@ class Simulator():
 
             return flux
 
-        RES = jl.Parallel(n_jobs=njobs)(jl.delayed(multithread)(i) for i in P)
+        RES = jl.Parallel(n_jobs=njobs, backend='threading')(jl.delayed(multithread)(i) for i in P)
         lc = np.array(RES)
-        lc /= lc.max()
+       # lc /= lc.max() #normalizes
 
         xp = np.asarray(xp)
         if save_transit is not None:
