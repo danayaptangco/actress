@@ -67,7 +67,7 @@ class Transitsim(object):
             
         return y
         
-    def actress_run(self,wavelength, wavelength_fac, I0,c1,c2, I0_fac,c1_fac,c2_fac, c3=None,c4=None,c3_fac=None,c4_fac=None, gif_save=None, lightcurve_save=None, disk_save=None, transit_save=None):
+    def actress_run(self,wavelength, wavelength_fac, I0,c1,c2, I0_fac,c1_fac,c2_fac, c3=None,c4=None,c3_fac=None,c4_fac=None, gif_save=None, lightcurve_save=None, disk_save=None, transit_save=None, transit_disk_save=None):
         sim = ac.Simulator() #create simulation instance
         sim.setxsize(self.res2d)
         sim.setresolution(self.res3d) #set resolution of 3d star (number of points across diameter)
@@ -148,7 +148,17 @@ class Transitsim(object):
             transit_save = f'{transit_save_directory}transit_lc_{(wavelength_text)}.csv'
             np.savetxt(transit_save, lct, header=header_str)
 
-    def sim_spectrum(self, hd_ld_file, fac_ld_file, gif_save=None, lightcurve_save=None, disk_save=None, transit_save=None):
+        if transit_disk_save:
+            transit_disk_save_directory = f'./outputs/transit_disks/{transit_disk_save}/'
+            os.makedirs(transit_disk_save_directory, exist_ok=True)
+            discs, wavelength_shifts, P = sim.transit_lc(radratio=self.rp, inc=90, b=self.b, N=self.N, mode=self.mode, a=self.a, T=self.T, phi=self.phi,
+                                                          returndisc=True, retP=True, v_eq=self.v_eq, wavelength=wavelength_text) #per-position disc with the planet-covered fraction blocked out, star rotating at v_eq
+            np.save(f'{transit_disk_save_directory}transit_disk_inp{(wavelength_text)}.npy', discs)
+            np.savetxt(f'{transit_disk_save_directory}transit_positions_inp{(wavelength_text)}.csv', np.asarray(P), header=header_str)
+            if wavelength_shifts is not None:
+                np.savetxt(f'{transit_disk_save_directory}wavelength_shifts_inp{(wavelength_text)}.csv', wavelength_shifts, header=header_str)
+
+    def sim_spectrum(self, hd_ld_file, fac_ld_file, gif_save=None, lightcurve_save=None, disk_save=None, transit_save=None, transit_disk_save=None):
         self.hd_ld_file = hd_ld_file
         self.fac_ld_file = fac_ld_file
         hd_ld = np.loadtxt(hd_ld_file)
@@ -184,9 +194,9 @@ class Transitsim(object):
                     c3_fac = 0.1
                     c4_fac = 0.1
             if self.ld == 'claret':
-                self.actress_run(wavelength, wavelength_fac, I0,c1,c2,I0_fac,c1_fac,c2_fac,c3=c3,c4=c4,c3_fac=c3_fac,c4_fac=c4_fac, gif_save=gif_save, lightcurve_save=lightcurve_save, disk_save=disk_save, transit_save=transit_save) #Dana edit
+                self.actress_run(wavelength, wavelength_fac, I0,c1,c2,I0_fac,c1_fac,c2_fac,c3=c3,c4=c4,c3_fac=c3_fac,c4_fac=c4_fac, gif_save=gif_save, lightcurve_save=lightcurve_save, disk_save=disk_save, transit_save=transit_save, transit_disk_save=transit_disk_save) #Dana edit
             else:
-                self.actress_run(wavelength, wavelength_fac,I0,c1,c2,I0_fac,c1_fac,c2_fac, gif_save=gif_save, lightcurve_save=lightcurve_save, disk_save=disk_save, transit_save=transit_save) #Dana edit 
+                self.actress_run(wavelength, wavelength_fac,I0,c1,c2,I0_fac,c1_fac,c2_fac, gif_save=gif_save, lightcurve_save=lightcurve_save, disk_save=disk_save, transit_save=transit_save, transit_disk_save=transit_disk_save) #Dana edit
         #     val.append(lct)
         #     time.append(t)
         # val = np.asarray(val)

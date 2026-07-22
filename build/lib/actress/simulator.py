@@ -29,7 +29,6 @@ import os
 import functools
 import time
 from photutils.aperture import CircularAperture as CAp
-from photutils.aperture import aperture_photometry as APh
 import joblib as jl
 import copy
 
@@ -597,9 +596,16 @@ class Simulator():
 
 
     def transit_lc(self, radratio=0.1, disc='static', N=101, rot=0, inc=90, b=0.0,
-                         mode='both', a=1.25, angle=0.0, T=2.0, phi=0.5, retP=False, njobs=8, plotdisc=False, save_transit=None):
+                         mode='both', a=1.25, angle=0.0, T=2.0, phi=0.5, retP=False, njobs=8, plotdisc=False, save_transit=None,
+                         returndisc=False, v_eq=0, wavelength=None, xmax=360):
         """
         Modelling the planetary transit
+
+        v_eq, wavelength, xmax : rotate the star across the transit the same way rotate_lc does.
+        v_eq=0 (default) disables rotation entirely and reproduces the previous static-disc behaviour.
+        When v_eq!=0, the star's rotation angle is swept linearly from `rot` to `rot+xmax` degrees
+        across the N transit positions, and (if returndisc=True) a Doppler wavelength-shift map is
+        returned alongside the disc stack, analogous to rotate_lc's wavelength_shift_proj.
         """
         #if pad=='default':
         #    pad = int(self.__xs/8) #default pad is 1/8 of the disc diameter
@@ -615,26 +621,81 @@ class Simulator():
         #-ve angle and b because stellar disc has inverted y-axis
         N = len(xp)
 
-        MAT = self.stellarmodel(rot=rot, inc=inc, mode=mode)
-        MAT = np.pad(MAT, pad_width=pad, mode='constant', constant_values=0)
+        rotating = v_eq != 0
 
         P = []
         for i in range(N):
             P.append((xp[i], yp[i]))
 
-        def multithread(pos):
+        wavelength_shift_proj = None
 
-            mask = CAp(pos, Rp)
-            planet = APh(MAT, mask)[0][3]
-            flux = np.nansum(MAT) - planet
+        if rotating:
+            rot_positions = np.linspace(rot, rot + xmax, N) #stellar rotation angle at each transit position
 
-            return flux
+            m = self.makemap(mode=mode)
+            v2p = functools.partial(hp.vec2pix, hp.npix2nside(len(m)))
+            nside = hp.npix2nside(len(m))
+            theta, hp_phi = hp.pix2ang(nside, np.arange(len(m)))
+            v_stellar = np.sin(theta) * v_eq
+            inclination = np.radians(inc)
+            v_los_map = v_stellar * np.sin(hp_phi) * np.sin(inclination)
+            c = 3e8
+            if wavelength is not None:
+                wavelength_shift_map = - float(wavelength) * v_los_map / c
+                wavelength_shift_proj = hp.projector.OrthographicProj(rot=[rot, inc-90], half_sky=True, xsize=self.__xs).projmap(wavelength_shift_map, v2p)
+                wavelength_shift_proj[wavelength_shift_proj == -np.inf] = 0
+                wavelength_shift_proj = np.pad(wavelength_shift_proj, pad_width=pad, mode='constant', constant_values=0)
 
-        RES = jl.Parallel(n_jobs=njobs, backend='threading')(jl.delayed(multithread)(i) for i in P)
+            def multithread(pos, xpos):
+                mat = self.stellarmodel(rot=xpos, inc=inc, mode=mode)
+                mat = np.pad(mat, pad_width=pad, mode='constant', constant_values=0)
+
+                aperture = CAp(pos, Rp)
+                ap_image = aperture.to_mask(method='exact').to_image(mat.shape)
+                if ap_image is None: #aperture doesn't overlap the disc at all
+                    ap_image = np.zeros_like(mat)
+
+                if returndisc:
+                    return mat * (1 - ap_image) #disc with the planet-covered fraction blocked out
+
+                planet = np.nansum(mat * ap_image)
+                return np.nansum(mat) - planet #star rotating means total flux isn't invariant across positions
+
+            RES = jl.Parallel(n_jobs=njobs, backend='threading')(jl.delayed(multithread)(pos, xpos) for pos, xpos in zip(P, rot_positions))
+
+        else:
+            MAT = self.stellarmodel(rot=rot, inc=inc, mode=mode)
+            MAT = np.pad(MAT, pad_width=pad, mode='constant', constant_values=0)
+            total_flux = np.nansum(MAT) #invariant across positions, computed once
+
+            def multithread(pos):
+
+                aperture = CAp(pos, Rp)
+                ap_image = aperture.to_mask(method='exact').to_image(MAT.shape)
+                if ap_image is None: #aperture doesn't overlap the disc at all
+                    ap_image = np.zeros_like(MAT)
+
+                if returndisc:
+                    return MAT * (1 - ap_image) #disc with the planet-covered fraction blocked out
+
+                planet = np.nansum(MAT * ap_image)
+                flux = total_flux - planet
+
+                return flux
+
+            RES = jl.Parallel(n_jobs=njobs, backend='threading')(jl.delayed(multithread)(i) for i in P)
+
+        xp = np.asarray(xp)
+
+        if returndisc:
+            discs = np.array(RES)
+            if retP:
+                return discs, wavelength_shift_proj, P
+            return discs, wavelength_shift_proj
+
         lc = np.array(RES)
        # lc /= lc.max() #normalizes
 
-        xp = np.asarray(xp)
         if save_transit is not None:
             tmin = 0.5*T*(0.5 - phi)
             tmax = 0.5*T*(0.5 + phi)
@@ -653,7 +714,12 @@ class Simulator():
                 ax = plotdisc
             else:
                 raise Exception("plotdisc must be string, integer or axes object")
-            plt.imshow(MAT, cmap='plasma')
+            if rotating: #MAT isn't a single fixed array when the star rotates; plot its first-position appearance
+                plot_mat = self.stellarmodel(rot=rot_positions[0], inc=inc, mode=mode)
+                plot_mat = np.pad(plot_mat, pad_width=pad, mode='constant', constant_values=0)
+            else:
+                plot_mat = MAT
+            plt.imshow(plot_mat, cmap='plasma')
             plt.xticks([])
             plt.yticks([])
             for i in P:
