@@ -597,15 +597,22 @@ class Simulator():
 
     def transit_lc(self, radratio=0.1, disc='static', N=101, rot=0, inc=90, b=0.0,
                          mode='both', a=1.25, angle=0.0, T=2.0, phi=0.5, retP=False, njobs=8, plotdisc=False, save_transit=None,
-                         returndisc=False, v_eq=0, wavelength=None, xmax=360):
+                         returndisc=False, v_eq=0, wavelength=None, xmax=360,
+                         rotate_during_transit=False):
         """
         Modelling the planetary transit
 
-        v_eq, wavelength, xmax : rotate the star across the transit the same way rotate_lc does.
-        v_eq=0 (default) disables rotation entirely and reproduces the previous static-disc behaviour.
-        When v_eq!=0, the star's rotation angle is swept linearly from `rot` to `rot+xmax` degrees
-        across the N transit positions, and (if returndisc=True) a Doppler wavelength-shift map is
-        returned alongside the disc stack, analogous to rotate_lc's wavelength_shift_proj.
+        v_eq, wavelength : the star's equatorial velocity and the line's rest wavelength. When both
+        are set, (and returndisc=True) a Doppler wavelength-shift map is returned alongside the disc
+        stack, analogous to rotate_lc's wavelength_shift_proj. This is the star's rotational
+        broadening, and it does not require the disc itself to change across the transit.
+
+        rotate_during_transit, xmax : whether the star also *turns* while the planet crosses it. When
+        True (and v_eq!=0), the rotation angle is swept linearly from `rot` to `rot+xmax` degrees
+        across the N transit positions, so active regions move between frames. The default False
+        keeps the disc fixed at rotation angle `rot` for every position, which is what you want to
+        isolate the planet's motion from the star's rotation while still Doppler-shifting the disc
+        at v_eq.
         """
         #if pad=='default':
         #    pad = int(self.__xs/8) #default pad is 1/8 of the disc diameter
@@ -621,7 +628,7 @@ class Simulator():
         #-ve angle and b because stellar disc has inverted y-axis
         N = len(xp)
 
-        rotating = v_eq != 0
+        rotating = bool(rotate_during_transit) and v_eq != 0 #does the disc itself turn between positions?
 
         P = []
         for i in range(N):
@@ -629,9 +636,9 @@ class Simulator():
 
         wavelength_shift_proj = None
 
-        if rotating:
-            rot_positions = np.linspace(rot, rot + xmax, N) #stellar rotation angle at each transit position
-
+        #The Doppler shift map depends only on v_eq and the viewing geometry, not on whether the star
+        #turns during the transit, so build it whenever v_eq is set -- including for a static disc.
+        if v_eq != 0 and wavelength is not None:
             m = self.makemap(mode=mode)
             v2p = functools.partial(hp.vec2pix, hp.npix2nside(len(m)))
             nside = hp.npix2nside(len(m))
@@ -640,11 +647,13 @@ class Simulator():
             inclination = np.radians(inc)
             v_los_map = v_stellar * np.sin(hp_phi) * np.sin(inclination)
             c = 3e8
-            if wavelength is not None:
-                wavelength_shift_map = - float(wavelength) * v_los_map / c
-                wavelength_shift_proj = hp.projector.OrthographicProj(rot=[rot, inc-90], half_sky=True, xsize=self.__xs).projmap(wavelength_shift_map, v2p)
-                wavelength_shift_proj[wavelength_shift_proj == -np.inf] = 0
-                wavelength_shift_proj = np.pad(wavelength_shift_proj, pad_width=pad, mode='constant', constant_values=0)
+            wavelength_shift_map = - float(wavelength) * v_los_map / c
+            wavelength_shift_proj = hp.projector.OrthographicProj(rot=[rot, inc-90], half_sky=True, xsize=self.__xs).projmap(wavelength_shift_map, v2p)
+            wavelength_shift_proj[wavelength_shift_proj == -np.inf] = 0
+            wavelength_shift_proj = np.pad(wavelength_shift_proj, pad_width=pad, mode='constant', constant_values=0)
+
+        if rotating:
+            rot_positions = np.linspace(rot, rot + xmax, N) #stellar rotation angle at each transit position
 
             def multithread(pos, xpos):
                 mat = self.stellarmodel(rot=xpos, inc=inc, mode=mode)

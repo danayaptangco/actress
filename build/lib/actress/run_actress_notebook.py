@@ -68,7 +68,7 @@ class Transitsim(object):
         return y
         
     def actress_run(self,wavelength, wavelength_fac, I0,c1,c2, I0_fac,c1_fac,c2_fac, c3=None,c4=None,c3_fac=None,c4_fac=None, gif_save=None, lightcurve_save=None, disk_save=None, transit_save=None, transit_disk_save=None):
-        sim = ac.Simulator() #create simulation instance
+        sim = ac.Simulator(faculae=[], spots=[], fac_strips=[], spot_strips=[]) #create simulation instance (explicit empty lists: Simulator's [] defaults are shared between instances)
         sim.setxsize(self.res2d)
         sim.setresolution(self.res3d) #set resolution of 3d star (number of points across diameter)
         
@@ -152,7 +152,8 @@ class Transitsim(object):
             transit_disk_save_directory = f'./outputs/transit_disks/{transit_disk_save}/'
             os.makedirs(transit_disk_save_directory, exist_ok=True)
             discs, wavelength_shifts, P = sim.transit_lc(radratio=self.rp, inc=90, b=self.b, N=self.N, mode=self.mode, a=self.a, T=self.T, phi=self.phi,
-                                                          returndisc=True, retP=True, v_eq=self.v_eq, wavelength=wavelength_text) #per-position disc with the planet-covered fraction blocked out, star rotating at v_eq
+                                                          returndisc=True, retP=True, v_eq=self.v_eq, wavelength=wavelength_text,
+                                                          rotate_during_transit=False) #per-position disc with the planet-covered fraction blocked out; disc Doppler-shifted at v_eq but held fixed (no stellar rotation between positions)
             np.save(f'{transit_disk_save_directory}transit_disk_inp{(wavelength_text)}.npy', discs)
             np.savetxt(f'{transit_disk_save_directory}transit_positions_inp{(wavelength_text)}.csv', np.asarray(P), header=header_str)
             if wavelength_shifts is not None:
