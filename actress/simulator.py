@@ -647,7 +647,12 @@ class Simulator():
             v_los_map = v_stellar * np.sin(hp_phi) * np.sin(inclination)
             c = 3e8
             wavelength_shift_map = - float(wavelength) * v_los_map / c
-            wavelength_shift_proj = hp.projector.OrthographicProj(rot=[rot, inc-90], half_sky=True, xsize=self.__xs).projmap(wavelength_shift_map, v2p)
+            #projected at rotation angle 0, NOT at `rot`, matching rotate_lc: for solid-body rotation
+            #the line-of-sight velocity field is fixed in the sky plane (stripes of constant v_los
+            #parallel to the rotation axis), so it must not be carried around with the surface. The
+            #shift pattern lives on the healpix sphere, so projecting it at `rot` would rotate it,
+            #and the receding limb would stop reaching the full v_eq.
+            wavelength_shift_proj = hp.projector.OrthographicProj(rot=[0, inc-90], half_sky=True, xsize=self.__xs).projmap(wavelength_shift_map, v2p)
             wavelength_shift_proj[wavelength_shift_proj == -np.inf] = 0
             wavelength_shift_proj = np.pad(wavelength_shift_proj, pad_width=pad, mode='constant', constant_values=0)
 
