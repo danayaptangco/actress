@@ -152,8 +152,7 @@ class Transitsim(object):
             transit_disk_save_directory = f'./outputs/transit_disks/{transit_disk_save}/'
             os.makedirs(transit_disk_save_directory, exist_ok=True)
             discs, wavelength_shifts, P = sim.transit_lc(radratio=self.rp, inc=90, b=self.b, N=self.N, mode=self.mode, a=self.a, T=self.T, phi=self.phi,
-                                                          returndisc=True, retP=True, v_eq=self.v_eq, wavelength=wavelength_text,
-                                                          rotate_during_transit=False) #per-position disc with the planet-covered fraction blocked out; disc Doppler-shifted at v_eq but held fixed (no stellar rotation between positions)
+                                                          returndisc=True, retP=True, v_eq=self.v_eq, wavelength=wavelength_text) #per-position disc with the planet-covered fraction blocked out; disc Doppler-shifted at v_eq but held fixed (the star does not rotate between positions)
             np.save(f'{transit_disk_save_directory}transit_disk_inp{(wavelength_text)}.npy', discs)
             np.savetxt(f'{transit_disk_save_directory}transit_positions_inp{(wavelength_text)}.csv', np.asarray(P), header=header_str)
             if wavelength_shifts is not None:

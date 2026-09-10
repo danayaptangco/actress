@@ -16,6 +16,9 @@ outputs/**/*.gif
 *.egg
 *.png
 *.h5
+*.npz
+*.bak
+*.bak2
 
 # Python byte-compiled / optimized / DLL files
 __pycache__/

@@ -81,9 +81,19 @@ def process_disk_directory(directory, phase_idx=0, use_cache=True):
     intensity_filtered = intensity_all[valid_mask]
     
     # 5. Binning
-    bin_centers_full = np.linspace(wavelengths.min(), wavelengths.max(), len(wavelengths))
-    dw = bin_centers_full[1] - bin_centers_full[0] if len(bin_centers_full) > 1 else 0
-    bin_edges_full = np.linspace(bin_centers_full[0] - dw/2, bin_centers_full[-1] + dw/2, len(bin_centers_full) + 1)
+    # Bin centres are the sampled wavelengths themselves. The sampling is not
+    # perfectly uniform (spacings alternate between 0.0087 and 0.0088 A), so an
+    # evenly spaced grid drifts against it by up to a full bin width, which
+    # leaves bins empty when there is no Doppler shift to smear the flux.
+    bin_centers_full = wavelengths
+    if len(wavelengths) > 1:
+        midpoints = 0.5 * (wavelengths[:-1] + wavelengths[1:])
+        bin_edges_full = np.concatenate((
+            [wavelengths[0] - (wavelengths[1] - wavelengths[0]) / 2],
+            midpoints,
+            [wavelengths[-1] + (wavelengths[-1] - wavelengths[-2]) / 2]))
+    else:
+        bin_edges_full = np.array([wavelengths[0], wavelengths[0]])
     
     valid_bins_mask = (bin_edges_full[:-1] >= wl_min_edge) & (bin_edges_full[1:] <= wl_max_edge)
     bin_centers = bin_centers_full[valid_bins_mask]
