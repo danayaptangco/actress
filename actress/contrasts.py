@@ -110,6 +110,26 @@ def ld_fit(X,Y,I0,ld_law):
         return a_best, b_best
 
 
+def log_uniform_grid(wav, R):
+    # MURaM spectra are sampled at constant resolving power R:
+    # lambda_n = lambda_1 * (1 + 1/R)**(n-1)   (lambda in nm)
+    # The file's wavelength column is rounded (printed to 5 decimals in nm, i.e. 8 sig. figs), which
+    # makes the step between neighbouring wavelengths alternate between 0.0087 and 0.0088 A.
+    # Rebuild the grid from lambda_1 and R.
+    n_points = len(wav)
+    n_index = np.arange(n_points)
+    wav_grid = np.float64(wav[0]) * (1.0 + 1.0/R)**n_index   # nm
+
+    # Relabelling only fixes rounding, so every file wavelength (including the last end point) must be
+    # within one float32 spacing (3e-5 nm here, looser than the 1e-5 nm print precision) of the grid.
+    tolerance = np.spacing(np.float32(np.max(wav)))   # nm
+    max_offset = np.max(np.abs(wav - wav_grid))       # nm
+    if max_offset > tolerance:
+        raise ValueError(f"File wavelengths are up to {max_offset:.3e} nm from the R = {R} log grid "
+                         f"(tolerance {tolerance:.3e} nm); relabelling would misassign intensities.")
+    return wav_grid
+
+
 def validate_inputs(fac_file, phot_file, wav_lower, wav_higher, graphs=False):
     # Using pandas to seamlessly handle identical data arrays regardless of header comments
     fac_data = pd.read_csv(fac_file, sep=r'\s+', comment='#').values
@@ -219,10 +239,11 @@ def validate_outputs(fac_out_file, phot_out_file, graphs = False):
         plt.show()
 
 
-def contrast(data, wav_lower, wav_higher, N, ld_law, save=None, graphs=False):
+def contrast(data, wav_lower, wav_higher, N, ld_law, save=None, graphs=False, R=500000):
     # Using pandas to gracefully skip headers and comment lines, regardless of file format
     file = pd.read_csv(data, sep=r'\s+', comment='#').values
-    wavelength = file[:,0]
+    wavelength_file = file[:,0]   # nm, rounded values as written in the file; used for output file names
+    wavelength = log_uniform_grid(wavelength_file, R)   # nm
     wavelength_m = wav_nm_to_m(wavelength)
     indx_low, indx_high = wav_limits(wavelength_m,wav_lower,wav_higher)
     intensity = intensity_si(file)
@@ -301,14 +322,14 @@ def contrast(data, wav_lower, wav_higher, N, ld_law, save=None, graphs=False):
                 ax[1].set_xlabel('$\\mu$')
 
                                 
-                csv_path = './limb_darkening_laws/'+str(ld_law)+'_profile'+str(save[:4])+str(wavelength[i])+'nm'+'.csv' ##DANA EDIT
+                csv_path = './limb_darkening_laws/'+str(ld_law)+'_profile'+str(save[:4])+str(wavelength_file[i])+'nm'+'.csv' ##DANA EDIT
                 #os.makedirs('./limb_darkening_laws', exist_ok=True)
                 data_to_save = np.column_stack((costheta, area_total))
                 header = 'costheta,area_total'
                 np.savetxt(csv_path, data_to_save, delimiter=',', header=header, comments='') ##DANA EDIT^^
 
                 
-                plt.savefig('./limb_darkening_laws/'+str(ld_law)+'_profile'+str(save[:4])+str(wavelength[i])+'nm'+'.png')
+                plt.savefig('./limb_darkening_laws/'+str(ld_law)+'_profile'+str(save[:4])+str(wavelength_file[i])+'nm'+'.png')
                 plt.close()
 
     if len(wavs) == 0:

@@ -125,9 +125,12 @@ class Simulator():
 
         self.__ld = ld
 
-        self.__photmask = self.intensitymasks('phot')
-        self.__spotmask = self.intensitymasks('spot')
-        self.__facmask = self.intensitymasks('fac')
+        # The masks depend only on xsize and the ld dict, so they are built on first
+        # use by _ensuremasks rather than here. Building eagerly cost a full set at
+        # the xsize=800 default for every Simulator that is resized afterwards.
+        self.__photmask = None
+        self.__spotmask = None
+        self.__facmask = None
 
         self.__dphot = 1 #dummy variables
         self.__dspot = 2
@@ -138,9 +141,10 @@ class Simulator():
 
         self.__xs = newxs
 
-        self.__photmask = self.intensitymasks('phot')
-        self.__spotmask = self.intensitymasks('spot')
-        self.__facmask = self.intensitymasks('fac')
+        # invalidate; _ensuremasks rebuilds at the new size/coefficients on next use
+        self.__photmask = None
+        self.__spotmask = None
+        self.__facmask = None
 
     def getxsize(self):
 
@@ -263,9 +267,10 @@ class Simulator():
         else:
             raise Exception("'ld' must be a dictionary")
 
-        self.__photmask = self.intensitymasks('phot')
-        self.__spotmask = self.intensitymasks('spot')
-        self.__facmask = self.intensitymasks('fac')
+        # invalidate; _ensuremasks rebuilds at the new size/coefficients on next use
+        self.__photmask = None
+        self.__spotmask = None
+        self.__facmask = None
 
 
 
@@ -370,6 +375,21 @@ class Simulator():
         return LDMask
 
 
+    def _ensuremasks(self):
+        """
+        Build the three limb-darkening masks if they are stale.
+
+        They are a function of xsize and the ld dict only, so setxsize and setld
+        invalidate them instead of rebuilding. Deferring the build to first use means
+        a Simulator created at the default xsize and resized afterwards never pays
+        for a grid it will not use.
+        """
+        if self.__photmask is None:
+            self.__photmask = self.intensitymasks('phot')
+            self.__spotmask = self.intensitymasks('spot')
+            self.__facmask = self.intensitymasks('fac')
+
+
     def makemap(self, mode='both'):
         """
         Calculate Numerical Stellar Model
@@ -442,6 +462,8 @@ class Simulator():
 
 
 
+
+        self._ensuremasks()
 
         LST = self.__photmask[idx_star]
         LSP = self.__spotmask[idx_spot]
@@ -546,6 +568,8 @@ class Simulator():
                 idx_star = star == self.__dphot
                 idx_spot = star == self.__dspot
                 idx_facu = star== self.__dfac
+
+                self._ensuremasks()
 
                 LST = self.__photmask[idx_star]
                 LSP = self.__spotmask[idx_spot]
